@@ -194,8 +194,9 @@ class ParkingEnv(AbstractEnv, GoalEnv):
             lane_index = empty_spots[self.np_random.choice(np.arange(len(empty_spots)))]
             lane = self.road.network.get_lane(lane_index)
             vehicle.goal = Landmark(
-                self.road, lane.position(lane.length / 2, 0), heading=lane.heading
+                self.road, lane.position(lane.length / 2, 0), heading=lane.heading+np.pi
             )
+            
             self.road.objects.append(vehicle.goal)
             empty_spots.remove(lane_index)
 
