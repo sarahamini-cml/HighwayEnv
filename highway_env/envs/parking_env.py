@@ -179,22 +179,36 @@ class ParkingEnv(AbstractEnv, GoalEnv):
 
         # Controlled vehicles
         self.controlled_vehicles = []
-        for i in range(self.config["controlled_vehicles"]):
-            x0 = float(i - self.config["controlled_vehicles"] // 2) * 10.0
+        speed_range = self.config["action"].get("speed_range", [0, 0])
+        for _ in range(self.config["controlled_vehicles"]):
+            x0 = self.np_random.uniform(-30, 30)
+            y0 = self.np_random.uniform(-7, 7)
+            heading = 2.0 * np.pi * self.np_random.uniform()
+            facing_parked = (y0 > 6 and np.sin(heading) > 0) or (y0 < -6 and np.sin(heading) < 0)
+            facing_x_wall = (x0 > 25 and np.cos(heading) > 0) or (x0 < -25 and np.cos(heading) < 0)
+            near_parked = y0 > 6 or y0 < -6
+            near_x_wall = x0 > 25 or x0 < -25
+            if facing_parked or facing_x_wall:
+                v0 = 0.0
+            elif near_parked or near_x_wall:
+                v0 = self.np_random.uniform(0, 5)
+            else:
+                v0 = self.np_random.uniform(-5, 5)
             vehicle = self.action_type.vehicle_class(
-                self.road, [x0, 0.0], 2.0 * np.pi * self.np_random.uniform(), 0.0
+                self.road, [x0, y0], heading, v0
             )
             vehicle.color = VehicleGraphics.EGO_COLOR
             self.road.vehicles.append(vehicle)
             self.controlled_vehicles.append(vehicle)
-            empty_spots.remove(vehicle.lane_index)
+            if vehicle.lane_index in empty_spots:
+                empty_spots.remove(vehicle.lane_index)
 
         # Goal
         for vehicle in self.controlled_vehicles:
             lane_index = empty_spots[self.np_random.choice(np.arange(len(empty_spots)))]
             lane = self.road.network.get_lane(lane_index)
             vehicle.goal = Landmark(
-                self.road, lane.position(lane.length / 2, 0), heading=lane.heading+np.pi
+                self.road, lane.position(lane.length / 2, 0), heading=lane.heading + np.pi
             )
             
             self.road.objects.append(vehicle.goal)
